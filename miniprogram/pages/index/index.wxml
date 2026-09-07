@@ -1,29 +1,15 @@
-<!--index.wxml-->
-<view class="container">
-  <view class="title">快速了解云开发</view>
-  <view class="top_tip">免鉴权接口调用 免部署后台 高并发</view>
-  <view class="power" wx:key="title" wx:for="{{powerList}}" wx:for-item="power">
-    <view class="power_info" data-index="{{index}}" data-type="{{ power.type }}" bindtap="onClickPowerInfo">
-      <view class="power_info_text">
-        <view class="power_info_text_title">
-          {{power.title}}
-          <view class="power_info_text_tag" wx:if="{{power.tag}}">{{power.tag}}</view>
-        </view>
-        <view class="power_info_text_tip">{{power.tip}}</view>
-      </view>
-      <image wx:if="{{!power.showItem && power.item.length}}" class="power_info_more" src="../../images/arrow.svg"></image>
-      <image wx:if="{{power.showItem && power.item.length}}" class="power_info_less" src="../../images/arrow.svg"></image>
-      <image wx:if="{{!power.item.length}}" class="power_item_icon" src="../../images/arrow.svg"></image>
-    </view>
-    <view wx:if="{{power.showItem}}">
-      <view wx:key="title" wx:for="{{power.item}}">
-        <view class="line"></view>
-        <view class="power_item" bindtap="jumpPage" data-type="{{ item.type }}" data-page="{{item.page}}">
-          <view class="power_item_title">{{item.title}}</view>
-          <image class="power_item_icon" src="../../images/arrow.svg"></image>
-        </view>
-      </view>
-    </view>
-  </view>
-  <cloud-tip-modal showTipProps="{{showTip}}" title="{{title}}" content="{{content}}"></cloud-tip-modal>
-</view>
+<view class="page" wx:if="{{view==='home'}}"><view class="between"><view><view class="eyebrow">今天 · 慢慢来</view><view class="title">今天也一起舒展</view></view><view class="mark">八</view></view><view class="hero {{today?'done':''}}"><view class="label">今日状态</view><view class="hero-title">{{today?(today.type==='complete'?'今日已完成':'今日已练习'):'还没有开始'}}</view><view class="hero-copy">{{today?'今天已记录 '+today.sessions.length+' 次练习':'跟练一套，大约需要 12 分钟'}}</view><button class="hero-btn" data-view="choose" bindtap="go">{{today?'继续练习':'开始练习'}}　→</button></view><view class="section between"><view class="section-title">本周练习</view><view class="subtle">{{stats.week}}/7 天</view></view><view class="week"><view wx:for="{{weekDays}}" wx:key="day"><view class="dayname">{{item.name}}</view><view class="dot {{item.type}} {{item.today?'today':''}}">{{item.day}}</view></view></view><view class="stats"><view><b>{{stats.month}}</b><text>本月累计</text></view><view><b>{{stats.minutes}}</b><text>练习分钟</text></view><view><b>{{stats.streak}}</b><text>连续天数</text></view></view><view class="section"><view class="section-title">八式招法</view><view class="subtle">动作放慢一点，呼吸自然一点</view><view class="move-gallery"><view class="move-card" wx:for="{{moveCards}}" wx:key="name"><image src="{{item.src}}" mode="aspectFit" lazy-load></image><view><strong>{{index+1}}. {{item.name}}</strong><text>{{item.tip}}</text></view></view></view></view></view>
+
+<view class="page" wx:elif="{{view==='choose'}}"><button class="back" bindtap="back">‹</button><view class="eyebrow">今天想怎样练？</view><view class="title">选择练习方式</view><view class="subtle">跟随此刻的状态，不必追求完美。</view><button class="mode" data-view="video" bindtap="go"><b>▶</b><view><strong>视频跟练</strong><text>跟随完整示范练习，适合大多数人</text></view><i>›</i></button><button class="mode" data-view="audio" bindtap="go"><b>♫</b><view><strong>语音跟练</strong><text>闭目听引导，随语音完成八式</text></view><i>›</i></button></view>
+
+<view class="page" wx:elif="{{view==='video'}}"><button class="back" bindtap="back">‹</button><view class="eyebrow">视频跟练</view><view class="title">跟着一起舒展</view><view class="subtle">从容呼吸，动作做到自己舒适的幅度就好。</view><view class="video-box" wx:if="{{videoUrl}}"><video id="practice" src="{{videoUrl}}" controls show-fullscreen-btn enable-progress-gesture bindtimeupdate="videoTime" binderror="videoError" bindended="videoEnded"></video></view><view class="video-empty" wx:else><view>正在连接云视频</view><text>请稍候</text></view><view wx:if="{{videoError}}" style="background:#f0d9d2;color:#7a4036;border-radius:20rpx;padding:18rpx 22rpx;margin:-4rpx 0 20rpx;font-size:22rpx"><text>{{videoError}}</text><button size="mini" bindtap="resolveVideo">重新连接</button></view><view class="between video-meta"><text>完整八段锦示范</text><text>已练 {{videoSeconds}} 秒</text></view><button class="primary danger" bindtap="finishVideo">结束并记录本次练习</button></view>
+
+<view class="page" wx:elif="{{view==='audio'}}"><button class="back" bindtap="back">‹</button><view class="eyebrow">语音跟练 · 第 {{audioIndex+1}} 式</view><view class="title">听着练，慢慢舒展</view><view class="audio-card"><view class="audio-symbol">♫</view><view class="audio-move">{{moves[audioIndex]}}</view><view class="subtle">{{tips[audioIndex]}}</view><slider min="0" max="{{audioDuration||1}}" value="{{audioSeconds}}" activeColor="#426858" block-size="16" bindchange="seekAudio"/><view class="between audio-time"><text>{{audioSeconds}} 秒</text><text>{{audioDuration||'--'}} 秒</text></view></view><view class="audio-error" wx:if="{{audioError}}">{{audioError}}，上传后即可使用</view><button class="primary" bindtap="toggleAudio">{{audioPlaying?'暂停语音':'开始语音跟练'}}</button><button class="ghost audio-finish" bindtap="finishAudio">结束并记录本次练习</button></view>
+
+<view class="page" wx:elif="{{view==='records'}}"><view class="eyebrow">每一次都算数</view><view class="title">练习记录</view><view class="month-title">{{monthTitle}}</view><view class="calendar"><text wx:for="{{['一','二','三','四','五','六','日']}}" wx:key="item">{{item}}</text><view wx:for="{{monthDays}}" wx:key="index" class="cell {{item.type}} {{item.today?'today':''}}">{{item.day}}</view></view><view class="stats"><view><b>{{stats.month}}</b><text>练习次数</text></view><view><b>{{stats.minutes}}</b><text>总分钟</text></view><view><b>{{stats.week}}</b><text>本周次数</text></view></view></view>
+
+<view class="page" wx:elif="{{view==='me'}}"><view class="eyebrow">顺着自己的节奏</view><view class="title">我的日课</view><view class="settings"><view class="setting"><text>每日提醒</text><picker mode="selector" range="{{reminderOptions}}" data-key="reminder" bindchange="setting"><view class="subtle">点击选择提醒时间</view></picker></view><view class="setting"><text>默认练习时长</text><picker mode="selector" range="{{durationOptions}}" data-key="duration" bindchange="setting"><view class="subtle">{{settings.duration}} 分钟</view></picker></view><view class="setting between"><text>动作提示音</text><switch color="#426858" checked="{{settings.sound}}" bindchange="sound"/></view></view><view class="subtle foot">八段锦日课 · 本地保存你的每一次练习</view></view>
+
+<view class="tabbar" wx:if="{{view==='home'||view==='records'||view==='me'}}"><button data-tab="home" bindtap="tab" class="{{tab==='home'?'active':''}}">⌂<text>今日</text></button><button data-tab="records" bindtap="tab" class="{{tab==='records'?'active':''}}">◷<text>记录</text></button><button data-tab="me" bindtap="tab" class="{{tab==='me'?'active':''}}">○<text>我的</text></button></view>
+
+<view class="overlay" wx:if="{{showResult}}"><view class="sheet"><view class="eyebrow">本次练习已记录</view><view class="sheet-title">{{lastPartial?'身体已经开始舒展开了':'你为身体留出了时间。'}}</view><view class="subtle">想练时还可以继续，今天的每一次都会累计。</view><view class="moods"><button wx:for="{{moods}}" wx:key="item" data-mood="{{item}}" bindtap="selectMood" class="{{selectedMood===item?'active':''}}">{{item}}</button></view><button class="primary" bindtap="closeResult">完成</button></view></view>

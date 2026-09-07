@@ -1,185 +1,23 @@
-// index.js
+const MOVES=['双手托天理三焦','左右开弓似射雕','调理脾胃须单举','五劳七伤往后瞧','摇头摆尾去心火','两手攀足固肾腰','攒拳怒目增气力','背后七颠百病消'];
+const tips=['双手上托，缓缓舒展','左右开弓，目随手走','一掌上举，一掌下按','转头后瞧，动作舒缓','马步俯身，左右摆动','俯身攀足，起身后展','握拳前冲，目视前方','提踵颠足，轻落放松'];
+const CLOUD_ROOT='cloud://cloud1-d0gbwtx3sc132b73f.636c-cloud1-d0gbwtx3sc132b73f-1471073262/gifs/';
+const GIFS=['两手托天理三焦.gif','左右开弓似射雕.gif','调理脾胃需单举.gif','五劳七伤往后瞧.gif','摇头摆尾去心火.gif','两手攀足固肾腰.gif','攒拳怒目增气力.gif','背后七颠百病消.gif'];
+const pad=n=>String(n).padStart(2,'0');
+const dateKey=(d=new Date())=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fmt=s=>`${Math.floor(s/60)} 分 ${pad(s%60)} 秒`;
 Page({
-  data: {
-    showTip: false,
-    powerList: [
-      {
-        title: "云托管",
-        tip: "不限语言的全托管容器服务",
-        showItem: false,
-        item: [
-          {
-            type: "cloudbaserun",
-            title: "云托管调用",
-          },
-        ],
-      },
-      {
-        title: "云函数",
-        tip: "安全、免鉴权运行业务代码",
-        showItem: false,
-        item: [
-          {
-            type: "getOpenId",
-            title: "获取OpenId",
-          },
-          {
-            type: "getMiniProgramCode",
-            title: "生成小程序码",
-          },
-        ],
-      },
-      {
-        title: "数据库",
-        tip: "安全稳定的文档型数据库",
-        showItem: false,
-        item: [
-          {
-            type: "createCollection",
-            title: "创建集合",
-          },
-          {
-            type: "selectRecord",
-            title: "增删改查记录",
-          },
-          // {
-          //   title: '聚合操作',
-          //   page: 'sumRecord',
-          // },
-        ],
-      },
-      {
-        title: "云存储",
-        tip: "自带CDN加速文件存储",
-        showItem: false,
-        item: [
-          {
-            type: "uploadFile",
-            title: "上传文件",
-          },
-        ],
-      },
-      {
-        title: "AI 接入能力",
-        tip: "云开发 AI 接入能力",
-        showItem: false,
-        item: [
-          {
-            type: "model-guide",
-            title: "大模型对话指引",
-          },
-        ],
-      },
-      {
-        title: "AI 智能开发小程序",
-        tip: "连接 AI 开发工具与 MCP 开发小程序",
-        type: "ai-assistant",
-        skipEnvCheck: true,
-        showItem: false,
-        item: [],
-      },
-    ],
-    haveCreateCollection: false,
-    title: "",
-    content: "",
-  },
-  onClickPowerInfo(e) {
-    const app = getApp();
-    const index = e.currentTarget.dataset.index;
-    const powerList = this.data.powerList;
-    const selectedItem = powerList[index];
-    
-    // 检查是否跳过环境配置检测
-    if (!selectedItem.skipEnvCheck && !app.globalData.env) {
-      wx.showModal({
-        title: "提示",
-        content: "请在 `miniprogram/app.js` 中正确配置 `env` 参数",
-      });
-      return;
-    }
-    if (selectedItem.link) {
-      wx.navigateTo({
-        url: `../web/index?url=${selectedItem.link}&title=${selectedItem.title}`,
-      });
-    } else if (selectedItem.type) {
-      wx.navigateTo({
-        url: `/pages/example/index?envId=${this.data.selectedEnv?.envId}&type=${selectedItem.type}`,
-      });
-    } else if (selectedItem.page) {
-      wx.navigateTo({
-        url: `/pages/${selectedItem.page}/index`,
-      });
-    } else if (
-      selectedItem.title === "数据库" &&
-      !this.data.haveCreateCollection
-    ) {
-      this.onClickDatabase(powerList, selectedItem);
-    } else {
-      selectedItem.showItem = !selectedItem.showItem;
-      this.setData({
-        powerList,
-      });
-    }
-  },
-
-  jumpPage(e) {
-    const { type, page } = e.currentTarget.dataset;
-    console.log("jump page", type, page);
-    if (type) {
-      wx.navigateTo({
-        url: `/pages/example/index?envId=${this.data.selectedEnv?.envId}&type=${type}`,
-      });
-    } else {
-      wx.navigateTo({
-        url: `/pages/${page}/index?envId=${this.data.selectedEnv?.envId}`,
-      });
-    }
-  },
-
-  onClickDatabase(powerList, selectedItem) {
-    wx.showLoading({
-      title: "",
-    });
-    wx.cloud
-      .callFunction({
-        name: "quickstartFunctions",
-        data: {
-          type: "createCollection",
-        },
-      })
-      .then((resp) => {
-        if (resp.result.success) {
-          this.setData({
-            haveCreateCollection: true,
-          });
-        }
-        selectedItem.showItem = !selectedItem.showItem;
-        this.setData({
-          powerList,
-        });
-        wx.hideLoading();
-      })
-      .catch((e) => {
-        wx.hideLoading();
-        const { errCode, errMsg } = e;
-        if (errMsg.includes("Environment not found")) {
-          this.setData({
-            showTip: true,
-            title: "云开发环境未找到",
-            content:
-              "如果已经开通云开发，请检查环境ID与 `miniprogram/app.js` 中的 `env` 参数是否一致。",
-          });
-          return;
-        }
-        if (errMsg.includes("FunctionName parameter could not be found")) {
-          this.setData({
-            showTip: true,
-            title: "请上传云函数",
-            content:
-              "在'cloudfunctions/quickstartFunctions'目录右键，选择【上传并部署-云端安装依赖】，等待云函数上传完成后重试。",
-          });
-          return;
-        }
-      });
-  },
+ data:{view:'home',tab:'home',moves:MOVES,tips,moveCards:MOVES.map((name,i)=>({name,tip:tips[i],src:CLOUD_ROOT+GIFS[i]})),records:{},today:null,weekDays:[],monthDays:[],stats:{week:0,month:0,minutes:0,streak:0},videoUrl:'',videoError:'',videoSeconds:0,audioSeconds:0,audioDuration:0,audioIndex:0,audioPlaying:false,audioError:'音频尚未上传',showResult:false,lastPartial:false,moods:['舒展','平静','微微出汗','有些疲惫'],selectedMood:'',settings:{reminder:'none',defaultMode:'video',duration:'12',sound:true}},
+ onLoad(){this.load();const fileID=getApp().globalData.videoFileID;this.setData({videoUrl:fileID});setTimeout(()=>this.resolveVideo(),300);},
+ onUnload(){this.destroyAudio();},
+ load(){const records=wx.getStorageSync('bdj_records')||{},settings=wx.getStorageSync('bdj_settings')||this.data.settings;this.setData({records,settings});this.refresh();},
+ resolveVideo(){const id=getApp().globalData.videoFileID;if(!id||id.includes('ENV_ID'))return;this.setData({videoError:''});try{wx.cloud.getTempFileURL({fileList:[id]}).then(r=>{const f=r.fileList&&r.fileList[0];if(f&&f.tempFileURL)this.setData({videoUrl:f.tempFileURL,videoError:''});else this.setData({videoError:(f&&f.errMsg)||'云存储未返回临时地址'});}).catch(err=>this.setData({videoError:(err&&err.errMsg)||'视频地址获取失败'}));}catch(err){this.setData({videoError:(err&&err.message)||'云能力尚未初始化'});}},
+ refresh(){const records=this.data.records,now=new Date(),today=records[dateKey()]||null;let week=0,streak=0;const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));const weekDays=[];for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);const r=records[dateKey(d)];if(r)week++;weekDays.push({name:'一二三四五六日'[i],day:d.getDate(),today:dateKey(d)===dateKey(),type:r?r.type:''});}let c=new Date(now);if(!records[dateKey(c)])c.setDate(c.getDate()-1);while(records[dateKey(c)]){streak++;c.setDate(c.getDate()-1)}const prefix=`${now.getFullYear()}-${pad(now.getMonth()+1)}`,monthly=Object.values(records).filter(r=>r.date.indexOf(prefix)===0),seconds=monthly.reduce((n,r)=>n+(r.seconds||0),0);this.setData({today,weekDays,stats:{week,month:monthly.length,minutes:Math.round(seconds/60),streak}});this.buildMonth();},
+ buildMonth(){const now=new Date(),first=(new Date(now.getFullYear(),now.getMonth(),1).getDay()+6)%7,count=new Date(now.getFullYear(),now.getMonth()+1,0).getDate(),days=[];for(let i=0;i<first;i++)days.push({empty:true});for(let i=1;i<=count;i++){const k=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(i)}`,r=this.data.records[k];days.push({day:i,date:k,today:k===dateKey(),type:r?r.type:''});}this.setData({monthTitle:`${now.getFullYear()} 年 ${now.getMonth()+1} 月`,monthDays:days});},
+ tab(e){this.destroyAudio();this.setData({tab:e.currentTarget.dataset.tab,view:e.currentTarget.dataset.tab});},
+ go(e){const view=e.currentTarget.dataset.view;this.setData({view},()=>{if(view==='audio')this.setupAudio();});},back(){this.destroyAudio();this.setData({view:'home',tab:'home'});},
+ videoTime(e){this.setData({videoSeconds:Math.floor(e.detail.currentTime),videoError:''});},videoError(e){this.setData({videoError:(e.detail&&e.detail.errMsg)||'视频播放失败'});},videoEnded(){this.saveSession('video',this.data.videoSeconds,MOVES.map((_,i)=>i));},finishVideo(){if(this.data.videoSeconds<180){wx.showModal({title:'要记录这次练习吗？',content:`目前跟练了 ${fmt(this.data.videoSeconds)}`,success:r=>{if(r.confirm)this.saveSession('video',this.data.videoSeconds,MOVES.map((_,i)=>i));}})}else this.saveSession('video',this.data.videoSeconds,MOVES.map((_,i)=>i));},
+ setupAudio(){this.destroyAudio();const ctx=wx.createInnerAudioContext();this.audioCtx=ctx;ctx.src=getApp().globalData.audioFileID;ctx.onCanplay(()=>{this.setData({audioError:''});});ctx.onTimeUpdate(()=>{const duration=Math.floor(ctx.duration||0),seconds=Math.floor(ctx.currentTime||0),index=duration?Math.min(7,Math.floor(seconds/(duration/8))):0;this.setData({audioSeconds:seconds,audioDuration:duration,audioIndex:index});});ctx.onPlay(()=>this.setData({audioPlaying:true,audioError:''}));ctx.onPause(()=>this.setData({audioPlaying:false}));ctx.onStop(()=>this.setData({audioPlaying:false}));ctx.onEnded(()=>{this.setData({audioPlaying:false});this.saveSession('audio',Math.floor(ctx.duration||this.data.audioSeconds),MOVES.map((_,i)=>i));});ctx.onError(e=>this.setData({audioPlaying:false,audioError:e.errMsg||'音频尚未上传'}));},toggleAudio(){const ctx=this.audioCtx;if(!ctx)return this.setupAudio();this.data.audioPlaying?ctx.pause():ctx.play();},seekAudio(e){if(!this.audioCtx)return;this.audioCtx.seek(+e.detail.value);},finishAudio(){const seconds=this.data.audioSeconds;this.destroyAudio();if(seconds<180){wx.showModal({title:'要记录这次练习吗？',content:`目前跟练了 ${fmt(seconds)}`,success:r=>{if(r.confirm)this.saveSession('audio',seconds,MOVES.map((_,i)=>i));}})}else this.saveSession('audio',seconds,MOVES.map((_,i)=>i));},destroyAudio(){if(this.audioCtx){this.audioCtx.destroy();this.audioCtx=null;}this.setData({audioPlaying:false});},
+ saveSession(mode,seconds,moves){this.destroyAudio();const key=dateKey(),records=this.data.records,old=records[key],time=`${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`,session={mode,seconds,moves,time};if(old){const sessions=old.sessions||[{mode:old.mode,seconds:old.seconds||0,moves:old.moves||[],time:old.time}],all=[...new Set([...(old.moves||[]),...moves])];records[key]={...old,seconds:(old.seconds||0)+seconds,moves:all,sessions:[...sessions,session],type:old.type==='complete'||moves.length===8||all.length===8?'complete':'partial',time};}else records[key]={date:key,type:moves.length===8?'complete':'partial',mode,seconds,moves,time,sessions:[session]};wx.setStorageSync('bdj_records',records);this.setData({records,view:'home',tab:'home',showResult:true,lastPartial:moves.length<8,videoSeconds:0,audioSeconds:0});this.refresh();},
+ closeResult(){this.setData({showResult:false});},selectMood(e){const mood=e.currentTarget.dataset.mood,key=dateKey(),records=this.data.records;records[key].mood=mood;wx.setStorageSync('bdj_records',records);this.setData({selectedMood:mood,records});},
+ setting(e){const k=e.currentTarget.dataset.key,v=e.detail.value,settings={...this.data.settings,[k]:v};wx.setStorageSync('bdj_settings',settings);this.setData({settings});},sound(e){const settings={...this.data.settings,sound:e.detail.value};wx.setStorageSync('bdj_settings',settings);this.setData({settings});}
 });

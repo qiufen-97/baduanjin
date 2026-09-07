@@ -1,14 +1,15 @@
-# Windows
+# OS files
 [Dd]esktop.ini
 Thumbs.db
 $RECYCLE.BIN/
-
-# macOS
 .DS_Store
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
 
-# Node.js
+# Dependencies
 node_modules/
+
+# WeChat Developer Tools local settings
+project.private.config.json
+
+# Logs and temporary files
+*.log
+*.tmp
