@@ -7,7 +7,9 @@ const dateKey=(d=new Date())=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d
 const fmt=s=>`${Math.floor(s/60)} 分 ${pad(s%60)} 秒`;
 Page({
  data:{view:'home',tab:'home',moves:MOVES,tips,moveCards:MOVES.map((name,i)=>({name,tip:tips[i],src:CLOUD_ROOT+GIFS[i]})),records:{},today:null,weekDays:[],monthDays:[],stats:{week:0,month:0,minutes:0,streak:0},videoUrl:'',videoError:'',videoSeconds:0,audioSeconds:0,audioDuration:0,audioIndex:0,audioPlaying:false,audioError:'音频尚未上传',showResult:false,lastPartial:false,moods:['舒展','平静','微微出汗','有些疲惫'],selectedMood:'',settings:{reminder:'none',defaultMode:'video',duration:'12',sound:true}},
- onLoad(){this.load();const fileID=getApp().globalData.videoFileID;this.setData({videoUrl:fileID});setTimeout(()=>this.resolveVideo(),300);},
+ onLoad(){this.load();wx.showShareMenu({menus:['shareAppMessage','shareTimeline']});const fileID=getApp().globalData.videoFileID;this.setData({videoUrl:fileID});setTimeout(()=>this.resolveVideo(),300);},
+ onShareAppMessage(){const r=this.data.today,minutes=r?Math.max(1,Math.round((r.seconds||0)/60)):0;return{title:r?`我今天练了 ${minutes} 分钟八段锦，一起舒展一下吧`:'每天十分钟，一起练八段锦',path:'/pages/index/index?from=share',imageUrl:'/images/share-cover.jpg'};},
+ onShareTimeline(){const r=this.data.today,minutes=r?Math.max(1,Math.round((r.seconds||0)/60)):0;return{title:r?`今日八段锦 ${minutes} 分钟，身体正在一点点舒展开来`:'八段锦日课 · 每天十分钟',query:'from=timeline',imageUrl:'/images/share-cover.jpg'};},
  onUnload(){this.destroyAudio();},
  load(){const records=wx.getStorageSync('bdj_records')||{},settings=wx.getStorageSync('bdj_settings')||this.data.settings;this.setData({records,settings});this.refresh();},
  resolveVideo(){const id=getApp().globalData.videoFileID;if(!id||id.includes('ENV_ID'))return;this.setData({videoError:''});try{wx.cloud.getTempFileURL({fileList:[id]}).then(r=>{const f=r.fileList&&r.fileList[0];if(f&&f.tempFileURL)this.setData({videoUrl:f.tempFileURL,videoError:''});else this.setData({videoError:(f&&f.errMsg)||'云存储未返回临时地址'});}).catch(err=>this.setData({videoError:(err&&err.errMsg)||'视频地址获取失败'}));}catch(err){this.setData({videoError:(err&&err.message)||'云能力尚未初始化'});}},
