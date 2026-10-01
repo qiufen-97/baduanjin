@@ -2,11 +2,10 @@
   "pages": ["pages/index/index"],
   "window": {
     "navigationBarTitleText": "八段锦日课",
-    "navigationBarBackgroundColor": "#F5F1E8",
+    "navigationBarBackgroundColor": "#F4F0E6",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F5F1E8"
+    "backgroundColor": "#F4F0E6"
   },
   "sitemapLocation": "sitemap.json",
-  "style": "v2",
-  "lazyCodeLoading": "requiredComponents"
+  "style": "v2"
 }

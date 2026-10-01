@@ -1,1 +1,4 @@
-{"desc":"八段锦日课","rules":[{"action":"allow","page":"*"}]}
+{
+  "desc": "八段锦日课页面",
+  "rules": [{ "action": "allow", "page": "*" }]
+}

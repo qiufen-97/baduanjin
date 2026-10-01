@@ -1,25 +1,107 @@
-const MOVES=['双手托天理三焦','左右开弓似射雕','调理脾胃须单举','五劳七伤往后瞧','摇头摆尾去心火','两手攀足固肾腰','攒拳怒目增气力','背后七颠百病消'];
-const tips=['双手上托，缓缓舒展','左右开弓，目随手走','一掌上举，一掌下按','转头后瞧，动作舒缓','马步俯身，左右摆动','俯身攀足，起身后展','握拳前冲，目视前方','提踵颠足，轻落放松'];
-const CLOUD_ROOT='cloud://cloud1-d0gbwtx3sc132b73f.636c-cloud1-d0gbwtx3sc132b73f-1471073262/gifs/';
-const GIFS=['两手托天理三焦.gif','左右开弓似射雕.gif','调理脾胃需单举.gif','五劳七伤往后瞧.gif','摇头摆尾去心火.gif','两手攀足固肾腰.gif','攒拳怒目增气力.gif','背后七颠百病消.gif'];
-const pad=n=>String(n).padStart(2,'0');
-const dateKey=(d=new Date())=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const fmt=s=>`${Math.floor(s/60)} 分 ${pad(s%60)} 秒`;
+const STORAGE_KEY = 'bdj_records';
+const pad = number => String(number).padStart(2, '0');
+const dateKey = (date = new Date()) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+const encouragements = [
+  '今天的身体，也被你好好照顾了。',
+  '一点点舒展，也是一份认真。',
+  '这一回，算进了日子里。',
+  '不求满分，只记得回来。',
+  '今天这一式，叫作坚持。',
+  '练过便有痕迹，慢慢来。'
+];
+
 Page({
- data:{view:'home',tab:'home',moves:MOVES,tips,moveCards:MOVES.map((name,i)=>({name,tip:tips[i],src:CLOUD_ROOT+GIFS[i]})),records:{},today:null,weekDays:[],monthDays:[],stats:{week:0,month:0,minutes:0,streak:0},videoUrl:'',videoError:'',videoSeconds:0,audioSeconds:0,audioDuration:0,audioIndex:0,audioPlaying:false,audioError:'音频尚未上传',showResult:false,lastPartial:false,moods:['舒展','平静','微微出汗','有些疲惫'],selectedMood:'',settings:{reminder:'none',defaultMode:'video',duration:'12',sound:true}},
- onLoad(){this.load();wx.showShareMenu({menus:['shareAppMessage','shareTimeline']});const fileID=getApp().globalData.videoFileID;this.setData({videoUrl:fileID});setTimeout(()=>this.resolveVideo(),300);},
- onShareAppMessage(){const r=this.data.today,minutes=r?Math.max(1,Math.round((r.seconds||0)/60)):0;return{title:r?`我今天练了 ${minutes} 分钟八段锦，一起舒展一下吧`:'每天十分钟，一起练八段锦',path:'/pages/index/index?from=share',imageUrl:'/images/share-cover.jpg'};},
- onShareTimeline(){const r=this.data.today,minutes=r?Math.max(1,Math.round((r.seconds||0)/60)):0;return{title:r?`今日八段锦 ${minutes} 分钟，身体正在一点点舒展开来`:'八段锦日课 · 每天十分钟',query:'from=timeline',imageUrl:'/images/share-cover.jpg'};},
- onUnload(){this.destroyAudio();},
- load(){const records=wx.getStorageSync('bdj_records')||{},settings=wx.getStorageSync('bdj_settings')||this.data.settings;this.setData({records,settings});this.refresh();},
- resolveVideo(){const id=getApp().globalData.videoFileID;if(!id||id.includes('ENV_ID'))return;this.setData({videoError:''});try{wx.cloud.getTempFileURL({fileList:[id]}).then(r=>{const f=r.fileList&&r.fileList[0];if(f&&f.tempFileURL)this.setData({videoUrl:f.tempFileURL,videoError:''});else this.setData({videoError:(f&&f.errMsg)||'云存储未返回临时地址'});}).catch(err=>this.setData({videoError:(err&&err.errMsg)||'视频地址获取失败'}));}catch(err){this.setData({videoError:(err&&err.message)||'云能力尚未初始化'});}},
- refresh(){const records=this.data.records,now=new Date(),today=records[dateKey()]||null;let week=0,streak=0;const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));const weekDays=[];for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);const r=records[dateKey(d)];if(r)week++;weekDays.push({name:'一二三四五六日'[i],day:d.getDate(),today:dateKey(d)===dateKey(),type:r?r.type:''});}let c=new Date(now);if(!records[dateKey(c)])c.setDate(c.getDate()-1);while(records[dateKey(c)]){streak++;c.setDate(c.getDate()-1)}const prefix=`${now.getFullYear()}-${pad(now.getMonth()+1)}`,monthly=Object.values(records).filter(r=>r.date.indexOf(prefix)===0),seconds=monthly.reduce((n,r)=>n+(r.seconds||0),0);this.setData({today,weekDays,stats:{week,month:monthly.length,minutes:Math.round(seconds/60),streak}});this.buildMonth();},
- buildMonth(){const now=new Date(),first=(new Date(now.getFullYear(),now.getMonth(),1).getDay()+6)%7,count=new Date(now.getFullYear(),now.getMonth()+1,0).getDate(),days=[];for(let i=0;i<first;i++)days.push({empty:true});for(let i=1;i<=count;i++){const k=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(i)}`,r=this.data.records[k];days.push({day:i,date:k,today:k===dateKey(),type:r?r.type:''});}this.setData({monthTitle:`${now.getFullYear()} 年 ${now.getMonth()+1} 月`,monthDays:days});},
- tab(e){this.destroyAudio();this.setData({tab:e.currentTarget.dataset.tab,view:e.currentTarget.dataset.tab});},
- go(e){const view=e.currentTarget.dataset.view;this.setData({view},()=>{if(view==='audio')this.setupAudio();});},back(){this.destroyAudio();this.setData({view:'home',tab:'home'});},
- videoTime(e){this.setData({videoSeconds:Math.floor(e.detail.currentTime),videoError:''});},videoError(e){this.setData({videoError:(e.detail&&e.detail.errMsg)||'视频播放失败'});},videoEnded(){this.saveSession('video',this.data.videoSeconds,MOVES.map((_,i)=>i));},finishVideo(){if(this.data.videoSeconds<180){wx.showModal({title:'要记录这次练习吗？',content:`目前跟练了 ${fmt(this.data.videoSeconds)}`,success:r=>{if(r.confirm)this.saveSession('video',this.data.videoSeconds,MOVES.map((_,i)=>i));}})}else this.saveSession('video',this.data.videoSeconds,MOVES.map((_,i)=>i));},
- setupAudio(){this.destroyAudio();const ctx=wx.createInnerAudioContext();this.audioCtx=ctx;ctx.src=getApp().globalData.audioFileID;ctx.onCanplay(()=>{this.setData({audioError:''});});ctx.onTimeUpdate(()=>{const duration=Math.floor(ctx.duration||0),seconds=Math.floor(ctx.currentTime||0),index=duration?Math.min(7,Math.floor(seconds/(duration/8))):0;this.setData({audioSeconds:seconds,audioDuration:duration,audioIndex:index});});ctx.onPlay(()=>this.setData({audioPlaying:true,audioError:''}));ctx.onPause(()=>this.setData({audioPlaying:false}));ctx.onStop(()=>this.setData({audioPlaying:false}));ctx.onEnded(()=>{this.setData({audioPlaying:false});this.saveSession('audio',Math.floor(ctx.duration||this.data.audioSeconds),MOVES.map((_,i)=>i));});ctx.onError(e=>this.setData({audioPlaying:false,audioError:e.errMsg||'音频尚未上传'}));},toggleAudio(){const ctx=this.audioCtx;if(!ctx)return this.setupAudio();this.data.audioPlaying?ctx.pause():ctx.play();},seekAudio(e){if(!this.audioCtx)return;this.audioCtx.seek(+e.detail.value);},finishAudio(){const seconds=this.data.audioSeconds;this.destroyAudio();if(seconds<180){wx.showModal({title:'要记录这次练习吗？',content:`目前跟练了 ${fmt(seconds)}`,success:r=>{if(r.confirm)this.saveSession('audio',seconds,MOVES.map((_,i)=>i));}})}else this.saveSession('audio',seconds,MOVES.map((_,i)=>i));},destroyAudio(){if(this.audioCtx){this.audioCtx.destroy();this.audioCtx=null;}this.setData({audioPlaying:false});},
- saveSession(mode,seconds,moves){this.destroyAudio();const key=dateKey(),records=this.data.records,old=records[key],time=`${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`,session={mode,seconds,moves,time};if(old){const sessions=old.sessions||[{mode:old.mode,seconds:old.seconds||0,moves:old.moves||[],time:old.time}],all=[...new Set([...(old.moves||[]),...moves])];records[key]={...old,seconds:(old.seconds||0)+seconds,moves:all,sessions:[...sessions,session],type:old.type==='complete'||moves.length===8||all.length===8?'complete':'partial',time};}else records[key]={date:key,type:moves.length===8?'complete':'partial',mode,seconds,moves,time,sessions:[session]};wx.setStorageSync('bdj_records',records);this.setData({records,view:'home',tab:'home',showResult:true,lastPartial:moves.length<8,videoSeconds:0,audioSeconds:0});this.refresh();},
- closeResult(){this.setData({showResult:false});},selectMood(e){const mood=e.currentTarget.dataset.mood,key=dateKey(),records=this.data.records;records[key].mood=mood;wx.setStorageSync('bdj_records',records);this.setData({selectedMood:mood,records});},
- setting(e){const k=e.currentTarget.dataset.key,v=e.detail.value,settings={...this.data.settings,[k]:v};wx.setStorageSync('bdj_settings',settings);this.setData({settings});},sound(e){const settings={...this.data.settings,sound:e.detail.value};wx.setStorageSync('bdj_settings',settings);this.setData({settings});}
+  data: {
+    greeting: '',
+    dateLabel: '',
+    checked: false,
+    celebrate: false,
+    message: '练完以后，轻轻按一下',
+    weekDays: [],
+    total: 0,
+    streak: 0
+  },
+
+  onLoad() {
+    this.refresh();
+  },
+
+  onShow() {
+    this.refresh();
+  },
+
+  refresh() {
+    const records = wx.getStorageSync(STORAGE_KEY) || {};
+    const now = new Date();
+    const todayKey = dateKey(now);
+    const checked = Boolean(records[todayKey]);
+    const hour = now.getHours();
+    const greeting = hour < 11 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
+    const weekday = '日一二三四五六'[now.getDay()];
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const weekDays = [];
+
+    for (let index = 0; index < 7; index += 1) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + index);
+      const key = dateKey(day);
+      weekDays.push({
+        key,
+        label: '一二三四五六日'[index],
+        day: day.getDate(),
+        checked: Boolean(records[key]),
+        today: key === todayKey,
+        future: day > now
+      });
+    }
+
+    let streak = 0;
+    const cursor = new Date(now);
+    if (!checked) cursor.setDate(cursor.getDate() - 1);
+    while (records[dateKey(cursor)]) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    this.setData({
+      greeting,
+      dateLabel: `${now.getMonth() + 1}月${now.getDate()}日 · 星期${weekday}`,
+      checked,
+      weekDays,
+      total: Object.keys(records).length,
+      streak,
+      message: checked ? this.completionMessage(Object.keys(records).length, streak) : '练完以后，轻轻按一下'
+    });
+  },
+
+  completionMessage(total, streak) {
+    if ([7, 21, 50, 100, 365].includes(total)) return `这是你的第 ${total} 次，真好。`;
+    if (streak > 0 && streak % 7 === 0) return `不知不觉，已经连续 ${streak} 天。`;
+    return encouragements[(total - 1) % encouragements.length];
+  },
+
+  checkIn() {
+    if (this.data.checked) {
+      wx.showToast({ title: '今天已经打过卡啦', icon: 'none' });
+      return;
+    }
+
+    const records = wx.getStorageSync(STORAGE_KEY) || {};
+    const now = new Date();
+    const key = dateKey(now);
+    records[key] = {
+      date: key,
+      type: 'complete',
+      mode: 'checkin',
+      time: `${pad(now.getHours())}:${pad(now.getMinutes())}`
+    };
+    wx.setStorageSync(STORAGE_KEY, records);
+    wx.vibrateShort({ type: 'light' });
+    this.setData({ celebrate: false });
+    this.refresh();
+    this.setData({ celebrate: true });
+    setTimeout(() => this.setData({ celebrate: false }), 1100);
+  }
 });
