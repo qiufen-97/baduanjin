@@ -1,58 +1,38 @@
 <view class="page">
-  <view class="topline">
-    <text>八段锦 · 日课</text>
-    <view class="seal">八</view>
-  </view>
-
-  <view class="intro">
-    <view class="greeting">{{greeting}}，{{dateLabel}}</view>
-    <view class="title">今天练了吗？</view>
-    <view class="subtitle">无需计时，也不用证明什么。</view>
-  </view>
-
-  <view class="check-area {{celebrate ? 'celebrate' : ''}}">
-    <view class="spark spark-1"></view>
-    <view class="spark spark-2"></view>
-    <view class="spark spark-3"></view>
-    <view class="spark spark-4"></view>
-    <view class="spark spark-5"></view>
-    <view class="spark spark-6"></view>
-    <view class="spark spark-7"></view>
-    <view class="spark spark-8"></view>
-    <button class="check-button {{checked ? 'checked' : ''}}" bindtap="checkIn" hover-class="check-button-hover">
-      <view class="check-symbol">{{checked ? '✓' : '伸'}}</view>
-      <text>{{checked ? '今天已打卡' : '按下打卡'}}</text>
+  <view class="check-wrap {{celebrate ? 'celebrate' : ''}}">
+    <view class="orbit orbit-one"></view>
+    <view class="orbit orbit-two"></view>
+    <view class="particle p1"></view>
+    <view class="particle p2"></view>
+    <view class="particle p3"></view>
+    <view class="particle p4"></view>
+    <view class="particle p5"></view>
+    <view class="particle p6"></view>
+    <view class="particle p7"></view>
+    <view class="particle p8"></view>
+    <button class="check-button {{checked ? 'checked' : ''}}" bindtap="checkIn" hover-class="pressing">
+      <view class="button-face">
+        <text class="button-symbol">{{checked ? '✓' : '打卡'}}</text>
+      </view>
     </button>
   </view>
 
-  <view class="message {{checked ? 'done' : ''}}">{{message}}</view>
-
-  <view class="week-card">
-    <view class="week-head">
-      <text>这一周</text>
-      <text class="week-note">每一次都算数</text>
+  <view class="calendar">
+    <view class="month">{{monthLabel}}</view>
+    <view class="calendar-grid labels">
+      <text wx:for="{{weekLabels}}" wx:key="*this">{{item}}</text>
     </view>
-    <view class="week-row">
-      <view class="week-day" wx:for="{{weekDays}}" wx:key="key">
-        <text class="week-label">{{item.label}}</text>
-        <view class="week-dot {{item.checked ? 'checked' : ''}} {{item.today ? 'today' : ''}} {{item.future ? 'future' : ''}}">
-          {{item.checked ? '✓' : item.day}}
-        </view>
+    <view class="calendar-grid days">
+      <view wx:for="{{monthDays}}" wx:key="key" class="day {{item.empty ? 'empty' : ''}} {{item.checked ? 'checked' : ''}} {{item.today ? 'today' : ''}}">
+        <text wx:if="{{!item.empty}}">{{item.day}}</text>
       </view>
     </view>
   </view>
 
-  <view class="numbers">
-    <view class="number-item">
-      <text class="number">{{total}}</text>
-      <text class="number-label">累计打卡</text>
-    </view>
-    <view class="divider"></view>
-    <view class="number-item">
-      <text class="number">{{streak}}</text>
-      <text class="number-label">连续天数</text>
-    </view>
-  </view>
+  <button wx:if="{{checked}}" class="save-button" bindtap="savePoster">
+    <text class="save-icon">↓</text>
+    <text>保存打卡图</text>
+  </button>
 
-  <view class="privacy">记录只留在这台设备里</view>
+  <canvas class="poster-canvas" canvas-id="posterCanvas" width="750" height="1000"></canvas>
 </view>

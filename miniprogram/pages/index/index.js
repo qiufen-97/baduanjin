@@ -1,93 +1,47 @@
 const STORAGE_KEY = 'bdj_records';
-const pad = number => String(number).padStart(2, '0');
+const pad = value => String(value).padStart(2, '0');
 const dateKey = (date = new Date()) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-
-const encouragements = [
-  '今天的身体，也被你好好照顾了。',
-  '一点点舒展，也是一份认真。',
-  '这一回，算进了日子里。',
-  '不求满分，只记得回来。',
-  '今天这一式，叫作坚持。',
-  '练过便有痕迹，慢慢来。'
-];
 
 Page({
   data: {
-    greeting: '',
-    dateLabel: '',
     checked: false,
     celebrate: false,
-    message: '练完以后，轻轻按一下',
-    weekDays: [],
-    total: 0,
-    streak: 0
+    monthLabel: '',
+    weekLabels: ['一', '二', '三', '四', '五', '六', '日'],
+    monthDays: []
   },
 
-  onLoad() {
-    this.refresh();
-  },
-
-  onShow() {
-    this.refresh();
-  },
+  onLoad() { this.refresh(); },
+  onShow() { this.refresh(); },
 
   refresh() {
     const records = wx.getStorageSync(STORAGE_KEY) || {};
     const now = new Date();
-    const todayKey = dateKey(now);
-    const checked = Boolean(records[todayKey]);
-    const hour = now.getHours();
-    const greeting = hour < 11 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
-    const weekday = '日一二三四五六'[now.getDay()];
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    const weekDays = [];
-
-    for (let index = 0; index < 7; index += 1) {
-      const day = new Date(monday);
-      day.setDate(monday.getDate() + index);
-      const key = dateKey(day);
-      weekDays.push({
-        key,
-        label: '一二三四五六日'[index],
-        day: day.getDate(),
-        checked: Boolean(records[key]),
-        today: key === todayKey,
-        future: day > now
-      });
-    }
-
-    let streak = 0;
-    const cursor = new Date(now);
-    if (!checked) cursor.setDate(cursor.getDate() - 1);
-    while (records[dateKey(cursor)]) {
-      streak += 1;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-
     this.setData({
-      greeting,
-      dateLabel: `${now.getMonth() + 1}月${now.getDate()}日 · 星期${weekday}`,
-      checked,
-      weekDays,
-      total: Object.keys(records).length,
-      streak,
-      message: checked ? this.completionMessage(Object.keys(records).length, streak) : '练完以后，轻轻按一下'
+      checked: Boolean(records[dateKey(now)]),
+      monthLabel: `${now.getFullYear()} / ${pad(now.getMonth() + 1)}`,
+      monthDays: this.buildMonth(now, records)
     });
   },
 
-  completionMessage(total, streak) {
-    if ([7, 21, 50, 100, 365].includes(total)) return `这是你的第 ${total} 次，真好。`;
-    if (streak > 0 && streak % 7 === 0) return `不知不觉，已经连续 ${streak} 天。`;
-    return encouragements[(total - 1) % encouragements.length];
+  buildMonth(now, records) {
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const leading = (new Date(year, month, 1).getDay() + 6) % 7;
+    const count = new Date(year, month + 1, 0).getDate();
+    const days = Array.from({ length: leading }, (_, index) => ({ key: `empty-${index}`, empty: true }));
+    for (let day = 1; day <= count; day += 1) {
+      const key = `${year}-${pad(month + 1)}-${pad(day)}`;
+      days.push({ key, day, checked: Boolean(records[key]), today: key === dateKey(now) });
+    }
+    return days;
   },
 
   checkIn() {
     if (this.data.checked) {
-      wx.showToast({ title: '今天已经打过卡啦', icon: 'none' });
+      wx.showToast({ title: '今日已打卡', icon: 'none' });
       return;
     }
-
     const records = wx.getStorageSync(STORAGE_KEY) || {};
     const now = new Date();
     const key = dateKey(now);
@@ -99,9 +53,116 @@ Page({
     };
     wx.setStorageSync(STORAGE_KEY, records);
     wx.vibrateShort({ type: 'light' });
-    this.setData({ celebrate: false });
-    this.refresh();
-    this.setData({ celebrate: true });
-    setTimeout(() => this.setData({ celebrate: false }), 1100);
+    this.setData({ checked: true, celebrate: true, monthDays: this.buildMonth(now, records) });
+    setTimeout(() => this.setData({ celebrate: false }), 1000);
+  },
+
+  savePoster() {
+    if (!this.data.checked) return;
+    wx.showLoading({ title: '生成中', mask: true });
+    this.drawPoster(path => {
+      wx.hideLoading();
+      if (!path) {
+        wx.showToast({ title: '生成失败，请重试', icon: 'none' });
+        return;
+      }
+      wx.saveImageToPhotosAlbum({
+        filePath: path,
+        success: () => wx.showToast({ title: '已保存到相册', icon: 'success' }),
+        fail: error => {
+          if (error.errMsg && error.errMsg.includes('auth deny')) {
+            wx.showModal({
+              title: '需要相册权限',
+              content: '请在设置中允许保存图片到相册。',
+              confirmText: '去设置',
+              success: result => { if (result.confirm) wx.openSetting(); }
+            });
+          } else {
+            wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+          }
+        }
+      });
+    });
+  },
+
+  drawPoster(done) {
+    const ctx = wx.createCanvasContext('posterCanvas', this);
+    const now = new Date();
+    const records = wx.getStorageSync(STORAGE_KEY) || {};
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const first = (new Date(year, month, 1).getDay() + 6) % 7;
+    const count = new Date(year, month + 1, 0).getDate();
+
+    ctx.setFillStyle('#F3EFE6');
+    ctx.fillRect(0, 0, 750, 1000);
+    ctx.setStrokeStyle('#D8D0C2');
+    ctx.setLineWidth(1);
+    ctx.beginPath();
+    ctx.arc(375, 320, 196, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(375, 320, 172, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setFillStyle('#29483C');
+    ctx.beginPath();
+    ctx.arc(375, 320, 146, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.setFillStyle('#F7F3EA');
+    ctx.setTextAlign('center');
+    ctx.setTextBaseline('middle');
+    ctx.setFontSize(112);
+    ctx.fillText('✓', 375, 300);
+    ctx.setFontSize(26);
+    ctx.fillText('已 打 卡', 375, 385);
+    ctx.setFillStyle('#26342E');
+    ctx.setFontSize(26);
+    ctx.fillText(`${year} / ${pad(month + 1)} / ${pad(now.getDate())}`, 375, 560);
+
+    const labels = ['一', '二', '三', '四', '五', '六', '日'];
+    const startX = 117;
+    const stepX = 86;
+    const startY = 650;
+    ctx.setFontSize(19);
+    ctx.setFillStyle('#8C928E');
+    labels.forEach((label, index) => ctx.fillText(label, startX + index * stepX, startY));
+
+    for (let day = 1; day <= count; day += 1) {
+      const position = first + day - 1;
+      const column = position % 7;
+      const row = Math.floor(position / 7);
+      const x = startX + column * stepX;
+      const y = startY + 62 + row * 58;
+      const key = `${year}-${pad(month + 1)}-${pad(day)}`;
+      const checked = Boolean(records[key]);
+      if (checked) {
+        ctx.setFillStyle('#9D594E');
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.setFillStyle('#FFFFFF');
+      } else {
+        ctx.setFillStyle('#606A65');
+      }
+      ctx.setFontSize(18);
+      ctx.fillText(String(day), x, y + 1);
+    }
+
+    ctx.setFillStyle('#A4A39E');
+    ctx.setFontSize(18);
+    ctx.fillText('八段锦日课', 375, 945);
+    ctx.draw(false, () => {
+      wx.canvasToTempFilePath({
+        canvasId: 'posterCanvas',
+        width: 750,
+        height: 1000,
+        destWidth: 1500,
+        destHeight: 2000,
+        fileType: 'png',
+        quality: 1,
+        success: result => done(result.tempFilePath),
+        fail: () => done('')
+      }, this);
+    });
   }
 });
